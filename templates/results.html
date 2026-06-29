@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Resultados — Training Reminder</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="navbar navbar-light bg-white border-bottom px-4 d-flex justify-content-between align-items-center">
+    <a class="navbar-brand text-decoration-none" href="/">RME ZAZ1 · Training Reminder</a>
+    <div class="d-flex align-items-center gap-3">
+      {% if test_mode %}
+      <span class="test-mode-banner">Modo test — correos a {{ test_email }}</span>
+      {% endif %}
+      <a href="/" class="btn btn-sm btn-outline-secondary">← Nuevo CSV</a>
+    </div>
+  </nav>
+
+  <div class="container py-4" style="max-width: 960px;">
+    <div class="mb-3 text-muted small">Archivo: <strong>{{ filename }}</strong> · Procesado el {{ today }}</div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-4">
+        <div class="stat-card">
+          <div class="number">{{ filtered | length }}</div>
+          <div class="text-muted small mt-1">Registros afectados</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="stat-card">
+          <div class="number">{{ srmet_groups | length }}</div>
+          <div class="text-muted small mt-1">SRMETs a notificar</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="stat-card">
+          <div class="number {% if no_srmet %}text-danger{% endif %}">{{ no_srmet | length }}</div>
+          <div class="text-muted small mt-1">Sin SRMET asignado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="mainTabs">
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-records">Registros filtrados</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-teams">Por equipos</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-preview">Preview correos</a></li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- Tab 1: Filtered records -->
+      <div class="tab-pane fade show active" id="tab-records">
+        <div class="bg-white border rounded p-0" style="overflow: auto;">
+          <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="px-3">Login</th>
+                <th>Nombre</th>
+                <th>Curso</th>
+                <th>Días restantes</th>
+                <th>Crew</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in filtered | sort(attribute='days_til_non_compliant') %}
+              <tr>
+                <td class="px-3 text-muted">{{ r.login }}</td>
+                <td>{{ r.name }}</td>
+                <td>{{ r.course_title }}</td>
+                <td>
+                  {% if r.days_til_non_compliant < 0 %}
+                    <span class="badge badge-expired">Caducada {{ r.days_til_non_compliant }} d</span>
+                  {% elif r.days_til_non_compliant < 7 %}
+                    <span class="badge badge-critical">{{ r.days_til_non_compliant }} días</span>
+                  {% elif r.days_til_non_compliant < 14 %}
+                    <span class="badge badge-warning">{{ r.days_til_non_compliant }} días</span>
+                  {% else %}
+                    <span class="badge badge-notice">{{ r.days_til_non_compliant }} días</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted">{{ r.crew if r.crew else '—' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center py-4 text-muted">No hay registros con < 21 días de vencimiento.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: By teams -->
+      <div class="tab-pane fade" id="tab-teams">
+        {% for group in srmet_groups %}
+        <div class="bg-white border rounded mb-3 overflow-hidden">
+          <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center" style="background: #f8f9fa;">
+            <div>
+              <span class="fw-semibold">Crew {{ group.crew }}</span>
+              <span class="text-muted ms-2">SRMET: {{ group.srmet_name }} ({{ group.srmet_login }})</span>
+            </div>
+            <span class="badge bg-secondary">{{ group.members | length }} curso(s)</span>
+          </div>
+          <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+            <thead class="table-light">
+              <tr><th class="px-3">Colaborador</th><th>Curso</th><th>Días</th></tr>
+            </thead>
+            <tbody>
+              {% for m in group.members %}
+              <tr>
+                <td class="px-3">{{ m.name }}</td>
+                <td>{{ m.course_title }}</td>
+                <td>
+                  {% if m.days_til_non_compliant < 0 %}
+                    <span class="badge badge-expired">Caducada {{ m.days_til_non_compliant }}d</span>
+                  {% elif m.days_til_non_compliant < 7 %}
+                    <span class="badge badge-critical">{{ m.days_til_non_compliant }}d</span>
+                  {% elif m.days_til_non_compliant < 14 %}
+                    <span class="badge badge-warning">{{ m.days_til_non_compliant }}d</span>
+                  {% else %}
+                    <span class="badge badge-notice">{{ m.days_til_non_compliant }}d</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+
+        {% if no_srmet %}
+        <div class="bg-white border border-danger rounded mb-3 overflow-hidden">
+          <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center" style="background: #fff5f5;">
+            <span class="fw-semibold text-danger">Sin SRMET asignado</span>
+            <span class="badge bg-danger">{{ no_srmet | length }} registro(s)</span>
+          </div>
+          <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+            <thead class="table-light">
+              <tr><th class="px-3">Login</th><th>Nombre</th><th>Curso</th><th>Días</th><th>Motivo</th></tr>
+            </thead>
+            <tbody>
+              {% for m in no_srmet %}
+              <tr>
+                <td class="px-3 text-muted">{{ m.login }}</td>
+                <td>{{ m.name }}</td>
+                <td>{{ m.course_title }}</td>
+                <td>
+                  {% if m.days_til_non_compliant < 0 %}
+                    <span class="badge badge-expired">Caducada {{ m.days_til_non_compliant }}d</span>
+                  {% elif m.days_til_non_compliant < 7 %}
+                    <span class="badge badge-critical">{{ m.days_til_non_compliant }}d</span>
+                  {% elif m.days_til_non_compliant < 14 %}
+                    <span class="badge badge-warning">{{ m.days_til_non_compliant }}d</span>
+                  {% else %}
+                    <span class="badge badge-notice">{{ m.days_til_non_compliant }}d</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted small">{{ m.no_team_reason }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        {% if not srmet_groups and not no_srmet %}
+        <p class="text-muted text-center py-4">No hay registros que mostrar.</p>
+        {% endif %}
+      </div>
+
+      <!-- Tab 3: Email previews -->
+      <div class="tab-pane fade" id="tab-preview">
+        {% if srmet_groups %}
+        <!-- Template selector -->
+        <form method="post" action="/send" id="sendForm">
+          <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-white border rounded">
+            <span class="fw-semibold text-nowrap">Plantilla:</span>
+            {% for tmpl, label in template_labels.items() %}
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="radio" name="template" id="tmpl_{{ tmpl }}"
+                     value="{{ tmpl }}" {% if loop.first %}checked{% endif %}
+                     onchange="showTemplate(this.value)">
+              <label class="form-check-label" for="tmpl_{{ tmpl }}">{{ label }}</label>
+            </div>
+            {% endfor %}
+            <div class="ms-auto">
+              <button type="submit" class="btn btn-dark fw-semibold px-4">
+                Enviar {{ srmet_groups | length }} correo(s) →
+              </button>
+            </div>
+          </div>
+
+          <!-- Template preview panels -->
+          {% for tmpl in templates %}
+          <div class="template-panel" id="panel_{{ tmpl }}" style="{{ 'display:block' if loop.first else 'display:none' }}">
+            {% for preview in email_previews[tmpl] %}
+            <div class="mb-4">
+              <div class="text-muted small mb-1">
+                <strong>Crew {{ preview.crew }}</strong> · {{ preview.srmet_name }}
+                {% if test_mode %}· <em>→ {{ test_email }}</em>{% endif %}
+              </div>
+              <iframe srcdoc="{{ preview.html | e }}" class="email-preview-frame" frameborder="0"
+                      onload="this.style.height=(this.contentDocument.body.scrollHeight+32)+'px'"></iframe>
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </form>
+
+        {% else %}
+        <p class="text-muted text-center py-5">No hay SRMETs con miembros afectados.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function showTemplate(tmpl) {
+      document.querySelectorAll('.template-panel').forEach(p => p.style.display = 'none');
+      document.getElementById('panel_' + tmpl).style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Correos enviados — Training Reminder</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="navbar navbar-light bg-white border-bottom px-4">
+    <a class="navbar-brand text-decoration-none" href="/">RME ZAZ1 · Training Reminder</a>
+  </nav>
+
+  <div class="container py-5" style="max-width: 680px;">
+    {% set success_count = send_results | selectattr('success') | list | length %}
+    {% set fail_count = send_results | length - success_count %}
+
+    <div class="mb-4">
+      {% if fail_count == 0 %}
+      <h2 class="fw-bold">✓ Correos enviados</h2>
+      <p class="text-muted">{{ success_count }} correo(s) enviados correctamente con la plantilla <strong>{{ template_label }}</strong>.</p>
+      {% else %}
+      <h2 class="fw-bold">Envío parcial</h2>
+      <p class="text-muted">{{ success_count }} enviados · {{ fail_count }} con error.</p>
+      {% endif %}
+      {% if test_mode %}
+      <div class="test-mode-banner mb-3">Modo test activo — todos los correos fueron enviados a <strong>{{ test_email }}</strong></div>
+      {% endif %}
+    </div>
+
+    <div class="bg-white border rounded overflow-hidden">
+      <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+        <thead class="table-light">
+          <tr><th class="px-3">SRMET</th><th>Crew</th><th>Destinatario</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          {% for r in send_results %}
+          <tr>
+            <td class="px-3">{{ r.srmet_name }}</td>
+            <td class="text-muted">{{ r.crew }}</td>
+            <td class="text-muted small">{{ r.to_email }}</td>
+            <td>
+              {% if r.success %}
+                <span class="badge bg-secondary">Enviado</span>
+              {% else %}
+                <span class="badge bg-danger" title="{{ r.error }}">Error</span>
+                <span class="text-danger small ms-1">{{ r.error }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+      <a href="/results" class="btn btn-outline-secondary">← Volver a resultados</a>
+      <a href="/" class="btn btn-dark">Nuevo CSV</a>
+    </div>
+  </div>
+</body>
+</html>
