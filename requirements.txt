@@ -1,4 +1,5 @@
-flask
-pandas
-openpyxl
-pywin32
+Flask==3.1.1
+pandas==3.0.4
+openpyxl==3.1.5
+Werkzeug==3.1.8
+python-dotenv==1.1.0
