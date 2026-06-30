@@ -19,6 +19,14 @@
 
   <div class="hero">
     <div class="container" style="max-width: 560px;">
+      <div class="step-bar mb-4">
+        <span class="step-item active">① Cargar CSV</span>
+        <span class="step-sep">→</span>
+        <span class="step-item">② Abrir Outlook</span>
+        <span class="step-sep">→</span>
+        <span class="step-item">③ Preview y envío</span>
+      </div>
+
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for cat, msg in messages %}
         <div class="alert alert-{{ 'danger' if cat == 'error' else 'info' }} mb-4">{{ msg }}</div>

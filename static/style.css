@@ -75,3 +75,9 @@ body {
   font-size: 0.875rem;
   color: #92400e;
 }
+
+.step-bar { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; padding: 8px 0 4px; }
+.step-item { color: #bbb; font-weight: 500; white-space: nowrap; }
+.step-item.active { color: #111; font-weight: 700; }
+.step-item.done { color: #888; }
+.step-sep { color: #ddd; font-size: 0.7rem; }

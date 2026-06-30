@@ -13,11 +13,7 @@ os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
 _state = {'results': None, 'pending_send': None, 'send_meta': None}
 
 TEMPLATE_LABELS = {
-    'template_table':    'A — Tabla limpia',
-    'template_cards':    'B — Cards por persona',
-    'template_minimal':  'C — Ultra minimalista',
-    'template_twocol':   'D — Dos columnas',
-    'template_timeline': 'E — Timeline urgencia',
+    'template_table': 'Tabla limpia (por urgencia)',
 }
 
 
@@ -74,26 +70,43 @@ def results():
         return redirect(url_for('index'))
 
     today_str = date.today().strftime('%d/%m/%Y')
-    templates = list(TEMPLATE_LABELS.keys())
 
-    # Pre-render email previews for all SRMET templates
-    email_previews = {}
-    for tmpl in templates:
-        previews = []
-        for group in data['srmet_groups']:
-            html = render_template(f'emails/{tmpl}.html',
-                srmet_name=group['srmet_name'],
-                crew=group['crew'],
-                members=group['members'],
-                today=today_str
-            )
-            previews.append({
-                'srmet_login': group['srmet_login'],
-                'srmet_name': group['srmet_name'],
-                'crew': group['crew'],
-                'html': html
-            })
-        email_previews[tmpl] = previews
+    return render_template('results.html',
+        filtered=data['filtered'],
+        srmet_groups=data['srmet_groups'],
+        no_srmet=data['no_srmet'],
+        no_srmet_employees=data['no_srmet_employees'],
+        today=today_str,
+        filename=data['filename'],
+        test_mode=config.TEST_MODE,
+        test_email=config.TEST_EMAIL
+    )
+
+
+@app.route('/preview')
+def preview():
+    data = _state.get('results')
+    if not data:
+        flash('No hay datos cargados. Sube un CSV primero.', 'info')
+        return redirect(url_for('index'))
+
+    today_str = date.today().strftime('%d/%m/%Y')
+
+    # Pre-render SRMET email previews
+    email_previews = []
+    for group in data['srmet_groups']:
+        html = render_template('emails/template_table.html',
+            srmet_name=group['srmet_name'],
+            crew=group['crew'],
+            members=group['members'],
+            today=today_str
+        )
+        email_previews.append({
+            'srmet_login': group['srmet_login'],
+            'srmet_name': group['srmet_name'],
+            'crew': group['crew'],
+            'html': html
+        })
 
     # Pre-render direct employee previews (sin SRMET)
     no_srmet_previews = {}
@@ -105,19 +118,15 @@ def results():
             today=today_str
         )
 
-    return render_template('results.html',
-        filtered=data['filtered'],
+    return render_template('preview.html',
         srmet_groups=data['srmet_groups'],
-        no_srmet=data['no_srmet'],
         no_srmet_employees=data['no_srmet_employees'],
         no_srmet_previews=no_srmet_previews,
         email_previews=email_previews,
-        template_labels=TEMPLATE_LABELS,
         today=today_str,
         filename=data['filename'],
         test_mode=config.TEST_MODE,
-        test_email=config.TEST_EMAIL,
-        templates=templates
+        test_email=config.TEST_EMAIL
     )
 
 
@@ -145,9 +154,9 @@ def send():
         )
         email_list.append({
             'to_email': group['srmet_email'],
-            'subject': f"RME ZAZ1 | Formaciones próximas a caducar — Semana {week_num} | Crew {group['crew']}",
+            'subject': f"RME ZAZ1 | Formaciones próximas a caducar — Semana {week_num} | Equipo {group['crew']}",
             'html_body': html_body,
-            'label': f"SRMET Crew {group['crew']} · {group['srmet_name']}",
+            'label': f"SRMET Equipo {group['crew']} · {group['srmet_name']}",
             'crew': group['crew']
         })
 

@@ -94,9 +94,9 @@ def assign_teams(filtered_records, teams, login_to_crew):
             if login not in login_to_crew:
                 rec['no_team_reason'] = 'No aparece en Teams.xlsx'
             elif crew_num is None:
-                rec['no_team_reason'] = 'Crew sin SRMET asignado (C / Ap)'
+                rec['no_team_reason'] = 'Equipo sin SRMET asignado (C / Ap)'
             else:
-                rec['no_team_reason'] = f'Crew {crew_num} sin SRMET definido'
+                rec['no_team_reason'] = f'Equipo {crew_num} sin SRMET definido'
             no_srmet.append(rec)
 
     for key in srmet_groups:
