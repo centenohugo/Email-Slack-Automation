@@ -1,5 +1,5 @@
 import os, json, time
-from flask import Flask, request, redirect, url_for, render_template, flash, Response, stream_with_context
+from flask import Flask, request, redirect, url_for, render_template, flash, Response, stream_with_context, session
 from werkzeug.utils import secure_filename
 from datetime import date
 import config
@@ -12,16 +12,26 @@ os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
 
 _state = {'results': None, 'pending_send': None, 'send_meta': None}
 
+
+def is_test_mode():
+    return session.get('test_mode', True)
+
 TEMPLATE_LABELS = {
     'template_table': 'Tabla limpia (por urgencia)',
 }
+
+
+@app.route('/toggle-test', methods=['POST'])
+def toggle_test():
+    session['test_mode'] = not is_test_mode()
+    return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/')
 def index():
     return render_template('index.html',
         teams_file=config.TEAMS_FILE,
-        test_mode=config.TEST_MODE,
+        test_mode=is_test_mode(),
         test_email=config.TEST_EMAIL
     )
 
@@ -78,7 +88,7 @@ def results():
         no_srmet_employees=data['no_srmet_employees'],
         today=today_str,
         filename=data['filename'],
-        test_mode=config.TEST_MODE,
+        test_mode=is_test_mode(),
         test_email=config.TEST_EMAIL
     )
 
@@ -125,7 +135,7 @@ def preview():
         email_previews=email_previews,
         today=today_str,
         filename=data['filename'],
-        test_mode=config.TEST_MODE,
+        test_mode=is_test_mode(),
         test_email=config.TEST_EMAIL
     )
 
@@ -154,7 +164,7 @@ def send():
         )
         email_list.append({
             'to_email': group['srmet_email'],
-            'subject': f"RME ZAZ1 | Formaciones próximas a caducar — Semana {week_num} | Equipo {group['crew']}",
+            'subject': f"🚨 Cursos de Safety Training pendientes - Acción requerida",
             'html_body': html_body,
             'label': f"SRMET Equipo {group['crew']} · {group['srmet_name']}",
             'crew': group['crew']
@@ -170,7 +180,7 @@ def send():
             )
             email_list.append({
                 'to_email': emp['email'],
-                'subject': f"RME ZAZ1 | Tus formaciones próximas a caducar — Semana {week_num}",
+                'subject': f"🚨 Cursos de Safety Training pendientes - Acción requerida",
                 'html_body': html_body,
                 'label': f"Directo · {emp['name']}",
                 'crew': None
@@ -181,9 +191,11 @@ def send():
         'template_label': TEMPLATE_LABELS.get(selected_template, selected_template),
     }
 
+    _state['send_test_mode'] = is_test_mode()
+
     return render_template('sending.html',
         total=len(email_list),
-        test_mode=config.TEST_MODE,
+        test_mode=is_test_mode(),
         test_email=config.TEST_EMAIL
     )
 
@@ -193,10 +205,11 @@ def send_stream():
     def generate():
         email_list = _state.get('pending_send') or []
         meta = _state.get('send_meta') or {}
+        test_mode = _state.get('send_test_mode', True)
         results = []
 
         for i, item in enumerate(email_list):
-            display_email = config.TEST_EMAIL if config.TEST_MODE else item['to_email']
+            display_email = config.TEST_EMAIL if test_mode else item['to_email']
 
             # Notify browser that this email is about to be sent
             yield "event: progress\ndata: {}\n\n".format(json.dumps({
@@ -207,7 +220,7 @@ def send_stream():
                 'status': 'sending'
             }))
 
-            success, error = send_email(item['to_email'], item['subject'], item['html_body'])
+            success, error = send_email(item['to_email'], item['subject'], item['html_body'], test_mode=test_mode)
             result = {
                 'label': item['label'],
                 'crew': item.get('crew'),

@@ -1,15 +1,16 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BUILDING_FILTER = "ZAZ1"
 DAYS_THRESHOLD = 21
 TEAMS_FILE = os.path.join("sample", "Teams.xlsx")
 EMAIL_DOMAIN = "@amazon.es"
 
-# Test mode: all emails go to TEST_EMAIL instead of real recipients
-TEST_MODE = True
-TEST_EMAIL = "roggen@amazon.es"
+SECRET_KEY = os.environ["SECRET_KEY"]
+TEST_EMAIL = os.environ["TEST_EMAIL"]
 
 DEFAULT_TEMPLATE = "template_table"
-SECRET_KEY = "reminder-local-key-2024"
 UPLOAD_FOLDER = "uploads"
-EMAIL_SEND_DELAY = 1.5  # seconds between sends to avoid overwhelming Outlook
+EMAIL_SEND_DELAY = 1.5

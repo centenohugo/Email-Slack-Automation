@@ -26,7 +26,7 @@ def _friendly_error(e):
     )
 
 
-def send_email(to_email, subject, html_body):
+def send_email(to_email, subject, html_body, test_mode=True):
     try:
         import pythoncom
         import win32com.client
@@ -34,7 +34,7 @@ def send_email(to_email, subject, html_body):
         try:
             outlook = win32com.client.Dispatch("Outlook.Application")
             mail = outlook.CreateItem(0)
-            if config.TEST_MODE:
+            if test_mode:
                 mail.To = config.TEST_EMAIL
                 mail.Subject = f"[TEST] {subject}"
             else:
