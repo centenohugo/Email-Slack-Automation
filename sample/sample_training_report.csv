@@ -1,0 +1,9 @@
+"Building","Employee Login","Employee Name","Employee Title","Course Title","Assigned Date","Expiration Date","Completion Date","Compliance Category","Courses"
+"ZAZ1","jdoetest","Doe,John","RME Technician","EU RME-WHS: Aerial Access Equipment Training","2026-02-11","2026-07-05 00:00:00","2025-07-01","< 90",1
+"ZAZ1","jdoetest","Doe,John","RME Technician","RME - Global Bloodborne Pathogens and Communicable Diseases","2026-02-11","2026-07-10 00:00:00","2025-07-05","< 90",1
+"ZAZ1","jdoetest","Doe,John","RME Technician","01 EURME-WHS: Energy Sources Awareness","2026-06-02","2027-07-01 00:00:00","2026-06-10","Good",1
+"ZAZ1","asmithtst","Smith,Alice","RME Mechatronics Apprentice","RME - Global Grinders and Hand Tools Training","2026-04-01","2026-07-08 00:00:00","2025-07-01","< 90",1
+"ZAZ1","asmithtst","Smith,Alice","RME Mechatronics Apprentice","EU High Risk Operations and Permit to Work - Awareness","2026-01-19","2027-03-01 00:00:00","2026-02-10","Good",1
+"ZAZ1","bjonestt","Jones,Bob","Sr Automation Eng","RME - Global Hazardous Energy Control (LOTO) Authorized Training","2026-05-02","2026-07-12 00:00:00","2025-07-10","< 90",1
+"ZAZ1","bjonestt","Jones,Bob","Sr Automation Eng","01-EURME-EU WHS : Heat and Cold Stress Awareness Training","2026-02-11","2026-10-01 00:00:00","2026-02-19","Good",1
+"ZAZ1","cnortest","Nor,Carlos","RME Technician","EU RME LOTO Demonstration","2026-05-02","2026-07-16 00:00:00","2025-07-12","< 90",1
