@@ -36,8 +36,8 @@
       </div>
       <div class="col-4">
         <div class="stat-card">
-          <div class="number {% if no_srmet %}text-danger{% endif %}">{{ no_srmet | length }}</div>
-          <div class="text-muted small mt-1">Sin SRMET asignado</div>
+          <div class="number {% if no_srmet_employees %}text-danger{% endif %}">{{ no_srmet_employees | length }}</div>
+          <div class="text-muted small mt-1">Empleados sin SRMET</div>
         </div>
       </div>
     </div>
@@ -84,7 +84,7 @@
                 <td class="text-muted">{{ r.crew if r.crew else '—' }}</td>
               </tr>
               {% else %}
-              <tr><td colspan="5" class="text-center py-4 text-muted">No hay registros con < 21 días de vencimiento.</td></tr>
+              <tr><td colspan="5" class="text-center py-4 text-muted">No hay registros con &lt; 21 días de vencimiento.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -171,10 +171,10 @@
 
       <!-- Tab 3: Email previews -->
       <div class="tab-pane fade" id="tab-preview">
-        {% if srmet_groups %}
-        <!-- Template selector -->
         <form method="post" action="/send" id="sendForm">
-          <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-white border rounded">
+
+          <!-- Controls bar -->
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-4 p-3 bg-white border rounded">
             <span class="fw-semibold text-nowrap">Plantilla:</span>
             {% for tmpl, label in template_labels.items() %}
             <div class="form-check form-check-inline mb-0">
@@ -185,13 +185,14 @@
             </div>
             {% endfor %}
             <div class="ms-auto">
-              <button type="submit" class="btn btn-dark fw-semibold px-4">
+              <button type="submit" class="btn btn-dark fw-semibold px-4" id="send-btn">
                 Enviar {{ srmet_groups | length }} correo(s) →
               </button>
             </div>
           </div>
 
-          <!-- Template preview panels -->
+          <!-- SRMET email preview panels -->
+          {% if srmet_groups %}
           {% for tmpl in templates %}
           <div class="template-panel" id="panel_{{ tmpl }}" style="{{ 'display:block' if loop.first else 'display:none' }}">
             {% for preview in email_previews[tmpl] %}
@@ -206,11 +207,47 @@
             {% endfor %}
           </div>
           {% endfor %}
-        </form>
+          {% else %}
+          <p class="text-muted text-center py-3">No hay SRMETs con miembros afectados.</p>
+          {% endif %}
 
-        {% else %}
-        <p class="text-muted text-center py-5">No hay SRMETs con miembros afectados.</p>
-        {% endif %}
+          <!-- Direct employee notifications (sin SRMET) -->
+          {% if no_srmet_employees %}
+          <div class="mt-4 border-top pt-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <h6 class="fw-semibold text-danger mb-0">Notificaciones directas — empleados sin SRMET</h6>
+              <span class="badge bg-danger">{{ no_srmet_employees | length }} empleado(s)</span>
+            </div>
+
+            <div class="form-check mb-1">
+              <input class="form-check-input" type="checkbox" name="send_no_srmet" id="send_no_srmet"
+                     value="on" onchange="toggleNoSrmetPreview(this.checked)">
+              <label class="form-check-label" for="send_no_srmet">
+                Incluir notificaciones directas a <strong>{{ no_srmet_employees | length }}</strong> empleado(s)
+                — el correo va a cada empleado directamente (no tienen SRMET asignado)
+              </label>
+            </div>
+            <div class="text-muted small mb-3 ms-4">
+              Los correos directos usan siempre la plantilla personal del empleado,
+              independientemente de la plantilla seleccionada arriba.
+            </div>
+
+            <div id="no-srmet-previews" style="display:none;">
+              {% for emp in no_srmet_employees %}
+              <div class="mb-4">
+                <div class="text-muted small mb-1">
+                  <strong>{{ emp.name }}</strong> · {{ emp.login }}
+                  {% if test_mode %}· <em>→ {{ test_email }}</em>{% endif %}
+                </div>
+                <iframe srcdoc="{{ no_srmet_previews[emp.login] | e }}" class="email-preview-frame" frameborder="0"
+                        onload="this.style.height=(this.contentDocument.body.scrollHeight+32)+'px'"></iframe>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+        </form>
       </div>
 
     </div>
@@ -218,9 +255,19 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    const srmetCount = {{ srmet_groups | length }};
+    const directCount = {{ no_srmet_employees | length }};
+
     function showTemplate(tmpl) {
       document.querySelectorAll('.template-panel').forEach(p => p.style.display = 'none');
-      document.getElementById('panel_' + tmpl).style.display = 'block';
+      const panel = document.getElementById('panel_' + tmpl);
+      if (panel) panel.style.display = 'block';
+    }
+
+    function toggleNoSrmetPreview(checked) {
+      document.getElementById('no-srmet-previews').style.display = checked ? 'block' : 'none';
+      const total = srmetCount + (checked ? directCount : 0);
+      document.getElementById('send-btn').textContent = `Enviar ${total} correo(s) →`;
     }
   </script>
 </body>

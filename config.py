@@ -12,3 +12,4 @@ TEST_EMAIL = "roggen@amazon.es"
 DEFAULT_TEMPLATE = "template_table"
 SECRET_KEY = "reminder-local-key-2024"
 UPLOAD_FOLDER = "uploads"
+EMAIL_SEND_DELAY = 1.5  # seconds between sends to avoid overwhelming Outlook

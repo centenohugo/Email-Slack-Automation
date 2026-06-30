@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #ffffff; }
+  .container { max-width: 680px; margin: 0 auto; }
+  .intro { margin-bottom: 24px; }
+  .intro h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px 0; }
+  .intro p  { font-size: 14px; color: #555; margin: 0; }
+  .person-block { margin-bottom: 20px; }
+  .person-name { font-weight: 700; font-size: 13px; color: #111; padding: 8px 0 4px 0; border-bottom: 1px solid #e5e5e5; margin-bottom: 8px; }
+  .course-row { margin-bottom: 10px; }
+  .course-title { font-size: 12px; color: #333; margin-bottom: 4px; }
+  .bar-container { width: 100%; }
+  .bar-track { width: 100%; background-color: #f0f0f0; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 8px; border-radius: 3px; }
+  .bar-label { font-size: 10px; font-weight: 700; margin-top: 2px; }
+  .bar-expired { font-size: 10px; font-weight: 700; color: #7f1d1d; }
+  .footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #999; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="intro">
+    <h2>Formaciones próximas a caducar — Crew {{ crew }}</h2>
+    <p>Hola {{ srmet_name.split(',')[0] if ',' in srmet_name else srmet_name }}, resumen semanal de tu equipo.</p>
+  </div>
+
+  {% set seen = namespace(logins=[]) %}
+  {% for m in members %}
+    {% if m.login not in seen.logins %}
+      {% set _ = seen.logins.append(m.login) %}
+      <div class="person-block">
+        <div class="person-name">{{ m.name }} <span style="font-weight:400;color:#999;font-size:11px">({{ m.login }})</span></div>
+
+        {% for c in members if c.login == m.login %}
+        <div class="course-row">
+          <div class="course-title">{{ c.course_title }}</div>
+          {% if c.days_til_non_compliant < 0 %}
+            <div class="bar-expired">&#9632; CADUCADA ({{ c.days_til_non_compliant }} días)</div>
+          {% else %}
+            {% set pct = (c.days_til_non_compliant / 21 * 100) | int %}
+            {% if c.days_til_non_compliant < 7 %}
+              {% set bar_color = '#dc2626' %}
+              {% set label_color = '#dc2626' %}
+            {% elif c.days_til_non_compliant < 14 %}
+              {% set bar_color = '#ea580c' %}
+              {% set label_color = '#ea580c' %}
+            {% else %}
+              {% set bar_color = '#d97706' %}
+              {% set label_color = '#d97706' %}
+            {% endif %}
+            <table class="bar-container" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="{{ pct }}%" bgcolor="{{ bar_color }}" style="height:8px;border-radius:3px 0 0 3px;font-size:1px">&nbsp;</td>
+                <td bgcolor="#f0f0f0" style="height:8px;border-radius:0 3px 3px 0;font-size:1px">&nbsp;</td>
+              </tr>
+            </table>
+            <div class="bar-label" style="color:{{ label_color }}">{{ c.days_til_non_compliant }} días restantes</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="footer">
+    Generado automáticamente el {{ today }} · RME ZAZ1 Training Reminder
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Enviando correos — Training Reminder</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="navbar navbar-light bg-white border-bottom px-4">
+    <a class="navbar-brand text-decoration-none" href="/">RME ZAZ1 · Training Reminder</a>
+  </nav>
+
+  <div class="container py-5" style="max-width: 720px;">
+    {% if test_mode %}
+    <div class="test-mode-banner mb-3">Modo test — todos los correos se envían a <strong>{{ test_email }}</strong></div>
+    {% endif %}
+
+    <!-- Status header -->
+    <div class="mb-4">
+      <h2 class="fw-bold mb-1" id="status-title">Enviando correos...</h2>
+      <p class="text-muted mb-2" id="status-subtitle">
+        <span id="count">0</span> / {{ total }} enviados
+      </p>
+      <div class="progress" style="height: 3px;">
+        <div class="progress-bar bg-dark" id="progress-bar" role="progressbar" style="width: 0%; transition: width 0.3s ease;"></div>
+      </div>
+    </div>
+
+    <!-- Email list -->
+    <div class="bg-white border rounded overflow-hidden mb-4">
+      <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+        <thead class="table-light">
+          <tr>
+            <th class="px-3" style="width: 55%">Destinatario</th>
+            <th>Email</th>
+            <th class="text-end pe-3" style="width: 90px">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="email-list"></tbody>
+      </table>
+    </div>
+
+    <!-- Error details (filled by JS when done, if any) -->
+    <div id="error-details" class="d-none mb-4"></div>
+
+    <!-- Navigation buttons (shown when done) -->
+    <div id="nav-buttons" class="d-none d-flex gap-2">
+      <a href="/results" class="btn btn-outline-secondary">← Volver a resultados</a>
+      <a href="/" class="btn btn-dark">Nuevo CSV</a>
+    </div>
+  </div>
+
+  <script>
+    const total = {{ total }};
+    let sentCount = 0;
+    const tbody = document.getElementById('email-list');
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function setProgress(n) {
+      document.getElementById('count').textContent = n;
+      document.getElementById('progress-bar').style.width = Math.round(n / total * 100) + '%';
+    }
+
+    function addRow(step, label, toEmail) {
+      const tr = document.createElement('tr');
+      tr.id = 'row-' + step;
+      tr.innerHTML =
+        '<td class="px-3">' + esc(label) + '</td>' +
+        '<td class="text-muted small">' + esc(toEmail) + '</td>' +
+        '<td class="text-end pe-3"><span class="spinner-border spinner-border-sm text-secondary" role="status"></span></td>';
+      tbody.appendChild(tr);
+      tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function updateRow(step, success, error) {
+      const tr = document.getElementById('row-' + step);
+      if (!tr) return;
+      const td = tr.querySelector('td:last-child');
+      if (success) {
+        td.innerHTML = '<span class="badge bg-secondary">Enviado</span>';
+      } else {
+        td.innerHTML = '<span class="badge bg-danger">Error</span>';
+        const errTr = document.createElement('tr');
+        errTr.style.background = '#fff5f5';
+        errTr.innerHTML =
+          '<td colspan="3" class="px-3 py-1 text-danger" style="font-size:0.8rem">' + esc(error || 'Error desconocido') + '</td>';
+        tr.insertAdjacentElement('afterend', errTr);
+      }
+      sentCount++;
+      setProgress(sentCount);
+    }
+
+    function showDone(data) {
+      const successCount = data.results.filter(r => r.success).length;
+      const failCount = data.results.filter(r => !r.success).length;
+      const failed = data.results.filter(r => !r.success);
+
+      const title = document.getElementById('status-title');
+      const subtitle = document.getElementById('status-subtitle');
+
+      if (failCount === 0) {
+        title.textContent = 'Correos enviados';
+        subtitle.innerHTML = successCount + ' correo(s) enviados correctamente con la plantilla <strong>' + esc(data.template_label) + '</strong>.';
+      } else if (successCount === 0) {
+        title.textContent = 'Error al enviar';
+        subtitle.textContent = 'No se pudo enviar ningún correo. Consulta los errores a continuación.';
+      } else {
+        title.textContent = 'Envío parcial';
+        subtitle.textContent = successCount + ' enviados · ' + failCount + ' con error.';
+      }
+
+      setProgress(total);
+
+      if (failed.length > 0) {
+        const errDiv = document.getElementById('error-details');
+        errDiv.classList.remove('d-none');
+        let html = '<h6 class="fw-semibold text-danger mb-2">Detalle de errores</h6>';
+        for (const r of failed) {
+          html += '<div class="border border-danger rounded p-3 mb-2" style="background:#fff5f5;">' +
+            '<div class="fw-semibold mb-1">' + esc(r.label) + '</div>' +
+            '<div class="text-danger" style="font-size:0.875rem;">' + esc(r.error) + '</div>';
+          if (r.error && r.error.includes('pywin32')) {
+            html += '<div class="mt-2 p-2 rounded" style="background:#fee2e2;font-size:0.8rem;">' +
+              '<strong>Solución:</strong> Abre una terminal y ejecuta <code>pip install pywin32</code>, luego reinicia la app.' +
+              '</div>';
+          } else if (r.error && (r.error.includes('Outlook') || r.error.includes('COM'))) {
+            html += '<div class="mt-2 p-2 rounded" style="background:#fee2e2;font-size:0.8rem;">' +
+              '<strong>Solución:</strong> Asegúrate de que Microsoft Outlook está abierto y reinicia la app con <code>python app.py</code>.' +
+              '</div>';
+          }
+          html += '</div>';
+        }
+        errDiv.innerHTML = html;
+      }
+
+      document.getElementById('nav-buttons').classList.remove('d-none');
+    }
+
+    const es = new EventSource('/send-stream');
+
+    es.addEventListener('progress', function(e) {
+      const d = JSON.parse(e.data);
+      if (d.status === 'sending') {
+        addRow(d.step, d.label, d.to_email);
+      } else {
+        updateRow(d.step, d.success, d.error);
+      }
+    });
+
+    es.addEventListener('done', function(e) {
+      es.close();
+      showDone(JSON.parse(e.data));
+    });
+
+    es.onerror = function() {
+      es.close();
+      document.getElementById('status-title').textContent = 'Error de conexión';
+      document.getElementById('status-subtitle').textContent =
+        'Se perdió la conexión con el servidor. Comprueba que la app sigue ejecutándose.';
+      document.getElementById('nav-buttons').classList.remove('d-none');
+    };
+  </script>
+</body>
+</html>

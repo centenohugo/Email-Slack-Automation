@@ -105,3 +105,25 @@ def assign_teams(filtered_records, teams, login_to_crew):
     no_srmet.sort(key=lambda x: x['days_til_non_compliant'])
 
     return list(srmet_groups.values()), no_srmet
+
+
+def group_no_srmet_by_employee(no_srmet):
+    """Group no_srmet course records by employee, returning one entry per unique person."""
+    employees = {}
+    for rec in no_srmet:
+        login = rec['login']
+        if login not in employees:
+            employees[login] = {
+                'login': login,
+                'name': rec['name'],
+                'email': login + config.EMAIL_DOMAIN,
+                'no_team_reason': rec.get('no_team_reason', ''),
+                'courses': []
+            }
+        employees[login]['courses'].append({
+            'course_title': rec['course_title'],
+            'days_til_non_compliant': rec['days_til_non_compliant']
+        })
+    for emp in employees.values():
+        emp['courses'].sort(key=lambda x: x['days_til_non_compliant'])
+    return list(employees.values())
