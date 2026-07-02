@@ -21,16 +21,18 @@
   .footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #999; }
 </style>
 </head>
-<body>
+<body style="margin:0; padding:24px; font-family:Arial, Helvetica, sans-serif; color:#1a1a1a; background:#ffffff;">
 <div class="container">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+<table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" style="width:680px; max-width:680px;">
 
-  <div class="header">
-    <h2>Renovación cursos Safety Training</h2>
-    <p>
+  <tr><td class="header" style="padding-bottom:28px;">
+    <h2 style="font-size:16px; font-weight:700; margin:0 0 6px 0; color:#111;">Renovación cursos Safety Training</h2>
+    <p style="font-size:14px; color:#555; margin:0; line-height:1.5;">
       Hola {{ employee_name.split(',')[1].strip() if ',' in employee_name else employee_name }},<br>
       tus siguientes formaciones de Safety Training están próximas a caducar o ya han caducado.
     </p>
-  </div>
+  </td></tr>
 
   {% set non_compliant = [] %}
   {% set critical = [] %}
@@ -44,66 +46,86 @@
   {% endfor %}
 
   {% if non_compliant %}
-  <div class="section-title" style="color:#7f1d1d; border-bottom: 2px solid #7f1d1d;">NON COMPLIANT — Cursos ya vencidos</div>
-  <table>
-    <thead><tr><th>Formación</th><th style="white-space:nowrap">Días</th></tr></thead>
+  <tr><td class="section-title" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; padding:5px 0 4px 0; margin:22px 0 6px 0; color:#7f1d1d; border-bottom:2px solid #7f1d1d;">NON COMPLIANT — Cursos ya vencidos</td></tr>
+  <tr><td>
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:4px;">
+    <thead><tr>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;">Formación</th>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap;">Días</th>
+    </tr></thead>
     <tbody>
       {% for c in non_compliant | sort(attribute='days_til_non_compliant') %}
       <tr>
-        <td>{{ c.course_title }}</td>
-        <td><span class="badge b-exp">{{ c.days_til_non_compliant }} d</span></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;">{{ c.course_title }}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;"><span class="badge b-exp" style="display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; background:#450a0a; color:#fca5a5;">{{ c.days_til_non_compliant }} d</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </td></tr>
   {% endif %}
 
   {% if critical %}
-  <div class="section-title" style="color:#dc2626; border-bottom: 2px solid #dc2626;">CRÍTICO — Vencen en menos de 7 días</div>
-  <table>
-    <thead><tr><th>Formación</th><th style="white-space:nowrap">Días</th></tr></thead>
+  <tr><td class="section-title" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; padding:5px 0 4px 0; margin:22px 0 6px 0; color:#dc2626; border-bottom:2px solid #dc2626;">CRÍTICO — Vencen en menos de 7 días</td></tr>
+  <tr><td>
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:4px;">
+    <thead><tr>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;">Formación</th>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap;">Días</th>
+    </tr></thead>
     <tbody>
       {% for c in critical | sort(attribute='days_til_non_compliant') %}
       <tr>
-        <td>{{ c.course_title }}</td>
-        <td><span class="badge b-crit">{{ c.days_til_non_compliant }} d</span></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;">{{ c.course_title }}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;"><span class="badge b-crit" style="display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; background:#dc2626; color:#fff;">{{ c.days_til_non_compliant }} d</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </td></tr>
   {% endif %}
 
   {% if urgent %}
-  <div class="section-title" style="color:#ea580c; border-bottom: 2px solid #ea580c;">URGENTE — Vencen en menos de 14 días</div>
-  <table>
-    <thead><tr><th>Formación</th><th style="white-space:nowrap">Días</th></tr></thead>
+  <tr><td class="section-title" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; padding:5px 0 4px 0; margin:22px 0 6px 0; color:#ea580c; border-bottom:2px solid #ea580c;">URGENTE — Vencen en menos de 14 días</td></tr>
+  <tr><td>
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:4px;">
+    <thead><tr>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;">Formación</th>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap;">Días</th>
+    </tr></thead>
     <tbody>
       {% for c in urgent | sort(attribute='days_til_non_compliant') %}
       <tr>
-        <td>{{ c.course_title }}</td>
-        <td><span class="badge b-warn">{{ c.days_til_non_compliant }} d</span></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;">{{ c.course_title }}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;"><span class="badge b-warn" style="display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; background:#ea580c; color:#fff;">{{ c.days_til_non_compliant }} d</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </td></tr>
   {% endif %}
 
   {% if attention %}
-  <div class="section-title" style="color:#d97706; border-bottom: 2px solid #d97706;">ATENCIÓN — Vencen en menos de 21 días</div>
-  <table>
-    <thead><tr><th>Formación</th><th style="white-space:nowrap">Días</th></tr></thead>
+  <tr><td class="section-title" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; padding:5px 0 4px 0; margin:22px 0 6px 0; color:#d97706; border-bottom:2px solid #d97706;">ATENCIÓN — Vencen en menos de 21 días</td></tr>
+  <tr><td>
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:4px;">
+    <thead><tr>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;">Formación</th>
+      <th style="text-align:left; padding:8px 10px; background:#f5f5f5; border-bottom:2px solid #e0e0e0; color:#444; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap;">Días</th>
+    </tr></thead>
     <tbody>
       {% for c in attention | sort(attribute='days_til_non_compliant') %}
       <tr>
-        <td>{{ c.course_title }}</td>
-        <td><span class="badge b-note">{{ c.days_til_non_compliant }} d</span></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;">{{ c.course_title }}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle;"><span class="badge b-note" style="display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; background:#d97706; color:#fff;">{{ c.days_til_non_compliant }} d</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </td></tr>
   {% endif %}
 
-  <div class="footer">
+  <tr><td class="footer" style="margin-top:28px; padding-top:16px; border-top:1px solid #e0e0e0; font-size:11px; color:#999;">
     <p style="margin: 0 0 14px 0; font-size: 13px; color: #444; line-height: 1.65;">
       Te pedimos que completes los cursos anntes de la fencha de vencimiento.
       Si algún curso no puede completarse a tiempo, por favor contacta con nosotros para buscar una solución conjunta.
@@ -113,8 +135,10 @@
       Un saludo,<br>
       <strong>Equipo de ZAZ1-RME-Trainings</strong>
     </p>
-  </div>
+  </td></tr>
 
+</table>
+</td></tr></table>
 </div>
 </body>
 </html>
