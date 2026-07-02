@@ -6,8 +6,6 @@ import config
 def process_csv(filepath):
     df = pd.read_csv(filepath)
 
-    if 'Building' in df.columns:
-        df = df[df['Building'] == config.BUILDING_FILTER]
 
     df['Expiration Date'] = pd.to_datetime(df['Expiration Date'], errors='coerce')
     today = date.today()
