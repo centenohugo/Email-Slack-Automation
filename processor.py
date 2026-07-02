@@ -107,6 +107,23 @@ def assign_teams(filtered_records, teams, login_to_crew):
     return list(srmet_groups.values()), no_srmet
 
 
+def get_compliant_srmets(teams, srmet_groups):
+    """SRMETs whose crew has an SRMET defined but no pending/expiring courses."""
+    crews_with_issues = {g['crew'] for g in srmet_groups}
+    compliant = []
+    for crew_num, team in teams.items():
+        srmet = team.get('srmet')
+        if srmet and crew_num not in crews_with_issues:
+            compliant.append({
+                'crew': crew_num,
+                'srmet_login': srmet['login'],
+                'srmet_name': srmet['name'],
+                'srmet_email': srmet['login'] + config.EMAIL_DOMAIN,
+            })
+    compliant.sort(key=lambda x: x['crew'])
+    return compliant
+
+
 def group_no_srmet_by_employee(no_srmet):
     """Group no_srmet course records by employee, returning one entry per unique person."""
     employees = {}

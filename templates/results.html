@@ -165,6 +165,28 @@
         </div>
         {% endif %}
 
+        {% if compliant_srmets %}
+        <div class="bg-white border border-success rounded mb-3 overflow-hidden">
+          <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center" style="background: #f3fff5;">
+            <span class="fw-semibold text-success">✅ Equipos al día</span>
+            <span class="badge bg-success">{{ compliant_srmets | length }} equipo(s)</span>
+          </div>
+          <table class="table table-sm mb-0" style="font-size: 0.875rem;">
+            <thead class="table-light">
+              <tr><th class="px-3">Equipo</th><th>SRMET</th></tr>
+            </thead>
+            <tbody>
+              {% for c in compliant_srmets %}
+              <tr>
+                <td class="px-3">{{ c.crew }}</td>
+                <td>{{ c.srmet_name }} ({{ c.srmet_login }})</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
         {% if not srmet_groups and not no_srmet %}
         <p class="text-muted text-center py-4">No hay registros que mostrar.</p>
         {% endif %}

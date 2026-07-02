@@ -3,7 +3,7 @@ from flask import Flask, request, redirect, url_for, render_template, flash, Res
 from werkzeug.utils import secure_filename
 from datetime import date
 import config
-from processor import process_csv, load_teams, assign_teams, group_no_srmet_by_employee
+from processor import process_csv, load_teams, assign_teams, group_no_srmet_by_employee, get_compliant_srmets
 from email_sender import send_email
 
 app = Flask(__name__)
@@ -55,11 +55,13 @@ def upload():
         teams, login_to_crew = load_teams()
         srmet_groups, no_srmet = assign_teams(filtered, teams, login_to_crew)
         no_srmet_employees = group_no_srmet_by_employee(no_srmet)
+        compliant_srmets = get_compliant_srmets(teams, srmet_groups)
         _state['results'] = {
             'filtered': filtered,
             'srmet_groups': srmet_groups,
             'no_srmet': no_srmet,
             'no_srmet_employees': no_srmet_employees,
+            'compliant_srmets': compliant_srmets,
             'filename': f.filename
         }
     except Exception as e:
@@ -86,6 +88,7 @@ def results():
         srmet_groups=data['srmet_groups'],
         no_srmet=data['no_srmet'],
         no_srmet_employees=data['no_srmet_employees'],
+        compliant_srmets=data.get('compliant_srmets', []),
         today=today_str,
         filename=data['filename'],
         test_mode=is_test_mode(),
@@ -128,11 +131,26 @@ def preview():
             today=today_str
         )
 
+    # Pre-render congrats previews (SRMETs whose team is fully compliant)
+    congrats_previews = []
+    for c in data.get('compliant_srmets', []):
+        html = render_template('emails/template_congrats.html',
+            srmet_name=c['srmet_name'],
+            crew=c['crew']
+        )
+        congrats_previews.append({
+            'srmet_login': c['srmet_login'],
+            'srmet_name': c['srmet_name'],
+            'crew': c['crew'],
+            'html': html
+        })
+
     return render_template('preview.html',
         srmet_groups=data['srmet_groups'],
         no_srmet_employees=data['no_srmet_employees'],
         no_srmet_previews=no_srmet_previews,
         email_previews=email_previews,
+        congrats_previews=congrats_previews,
         today=today_str,
         filename=data['filename'],
         test_mode=is_test_mode(),
@@ -168,6 +186,20 @@ def send():
             'html_body': html_body,
             'label': f"SRMET Equipo {group['crew']} · {group['srmet_name']}",
             'crew': group['crew']
+        })
+
+    # Congrats emails to SRMETs whose team is fully compliant
+    for c in data.get('compliant_srmets', []):
+        html_body = render_template('emails/template_congrats.html',
+            srmet_name=c['srmet_name'],
+            crew=c['crew']
+        )
+        email_list.append({
+            'to_email': c['srmet_email'],
+            'subject': "✅ Safety Training - Tu equipo está al día",
+            'html_body': html_body,
+            'label': f"✅ Equipo {c['crew']} · {c['srmet_name']}",
+            'crew': c['crew']
         })
 
     # Direct emails to employees without SRMET (optional)
