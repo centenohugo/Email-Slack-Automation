@@ -73,22 +73,9 @@ if not exist ".env" (
         echo     Se ha creado .env desde .env.example.
     ) else (
         echo SECRET_KEY=cambiar-esta-clave-aleatoria> .env
-        echo TEST_EMAIL=tu_correo@amazon.es>> .env
         echo     Se ha creado .env con valores de ejemplo.
     )
     echo.
-    echo  ┌─────────────────────────────────────────────────────────┐
-    echo  │  ACCION REQUERIDA                                       │
-    echo  │                                                         │
-    echo  │  Edita el archivo .env con tu correo:                   │
-    echo  │    TEST_EMAIL=tu_correo@amazon.es                       │
-    echo  │                                                         │
-    echo  │  Guarda el archivo y pulsa cualquier tecla para         │
-    echo  │  continuar.                                             │
-    echo  └─────────────────────────────────────────────────────────┘
-    echo.
-    start notepad .env
-    pause
 )
 
 :: ── 5. Lanzar app ─────────────────────────────────────────────────

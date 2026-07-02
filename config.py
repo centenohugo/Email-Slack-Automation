@@ -9,7 +9,7 @@ TEAMS_FILE = os.path.join("sample", "Teams.xlsx")
 EMAIL_DOMAIN = "@amazon.es"
 
 SECRET_KEY = os.environ["SECRET_KEY"]
-TEST_EMAIL = os.environ["TEST_EMAIL"]
+TEST_EMAIL = os.environ.get("TEST_EMAIL") or f"{os.environ['USERNAME']}{EMAIL_DOMAIN}"
 
 DEFAULT_TEMPLATE = "template_table"
 UPLOAD_FOLDER = "uploads"
