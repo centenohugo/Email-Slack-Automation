@@ -30,7 +30,7 @@ def process_csv(filepath):
 def load_teams():
     df = pd.read_excel(config.TEAMS_FILE)
 
-    teams = {}           # crew_num (int 1-12) -> {'srmet': {...}, 'members': [...]}
+    teams = {}           # crew_num (int 1-12) -> {'srmets': [{...}, ...], 'members': [...]}
     login_to_crew = {}   # login -> crew_num or None (non-main crew) or 'missing' (not in file)
 
     for _, row in df.iterrows():
@@ -55,9 +55,9 @@ def load_teams():
 
         if crew_num is not None:
             if crew_num not in teams:
-                teams[crew_num] = {'srmet': None, 'members': []}
+                teams[crew_num] = {'srmets': [], 'members': []}
             if role == 'SRMET':
-                teams[crew_num]['srmet'] = {'login': login, 'name': name}
+                teams[crew_num]['srmets'].append({'login': login, 'name': name})
             else:
                 teams[crew_num]['members'].append({'login': login, 'name': name, 'role': role})
 
@@ -75,21 +75,22 @@ def assign_teams(filtered_records, teams, login_to_crew):
         rec = dict(record)
         rec['crew'] = crew_num
 
-        srmet = None
+        srmets = []
         if crew_num is not None and crew_num in teams:
-            srmet = teams[crew_num].get('srmet')
+            srmets = teams[crew_num].get('srmets', [])
 
-        if srmet:
-            key = srmet['login']
-            if key not in srmet_groups:
-                srmet_groups[key] = {
-                    'srmet_login': key,
-                    'srmet_name': srmet['name'],
-                    'srmet_email': key + config.EMAIL_DOMAIN,
-                    'crew': crew_num,
-                    'members': []
-                }
-            srmet_groups[key]['members'].append(rec)
+        if srmets:
+            for srmet in srmets:
+                key = srmet['login']
+                if key not in srmet_groups:
+                    srmet_groups[key] = {
+                        'srmet_login': key,
+                        'srmet_name': srmet['name'],
+                        'srmet_email': key + config.EMAIL_DOMAIN,
+                        'crew': crew_num,
+                        'members': []
+                    }
+                srmet_groups[key]['members'].append(rec)
         else:
             if login not in login_to_crew:
                 rec['no_team_reason'] = 'No aparece en Teams.xlsx'
@@ -112,8 +113,9 @@ def get_compliant_srmets(teams, srmet_groups):
     crews_with_issues = {g['crew'] for g in srmet_groups}
     compliant = []
     for crew_num, team in teams.items():
-        srmet = team.get('srmet')
-        if srmet and crew_num not in crews_with_issues:
+        if crew_num in crews_with_issues:
+            continue
+        for srmet in team.get('srmets', []):
             compliant.append({
                 'crew': crew_num,
                 'srmet_login': srmet['login'],
