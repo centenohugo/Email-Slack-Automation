@@ -1,19 +1,19 @@
-@echo off
+﻿@echo off
 setlocal EnableDelayedExpansion
-title RME ZAZ1 · Training Reminder
+title RME ZAZ1 - Training Reminder
 chcp 65001 >nul
 
-:: ── 0. Anclar al directorio del script (funciona con doble-click, ─────
+:: -- 0. Anclar al directorio del script (funciona con doble-click, --
 ::     accesos directos con "Iniciar en" distinto, rutas con espacios, etc.)
 cd /d "%~dp0"
 
 echo.
 echo  ============================================
-echo   RME ZAZ1 · Training Reminder
+echo   RME ZAZ1 - Training Reminder
 echo  ============================================
 echo.
 
-:: ── 1. Localizar Python ───────────────────────────────────────────
+:: -- 1. Localizar Python --------------------------------------------
 set "PYTHON_EXE="
 for /f "tokens=*" %%i in ('where python 2^>nul') do (
     if not defined PYTHON_EXE set "PYTHON_EXE=%%i"
@@ -56,7 +56,7 @@ if not defined PYTHON_EXE (
 echo [OK] Python encontrado: !PYTHON_EXE!
 echo.
 
-:: ── 2. Crear entorno virtual si no existe ─────────────────────────
+:: -- 2. Crear entorno virtual si no existe ---------------------------
 if not exist "%~dp0venv\Scripts\python.exe" (
     echo [..] Creando entorno virtual...
     !PYTHON_EXE! -m venv "%~dp0venv"
@@ -71,7 +71,7 @@ if not exist "%~dp0venv\Scripts\python.exe" (
 
 set "VENV_PYTHON=%~dp0venv\Scripts\python.exe"
 
-:: ── 3. Instalar/actualizar dependencias ───────────────────────────
+:: -- 3. Instalar/actualizar dependencias ------------------------------
 echo [..] Instalando dependencias...
 "%VENV_PYTHON%" -m pip install -q -r "%~dp0requirements.txt"
 if errorlevel 1 (
@@ -82,7 +82,7 @@ if errorlevel 1 (
 echo [OK] Dependencias instaladas.
 echo.
 
-:: ── 4. Comprobar .env ─────────────────────────────────────────────
+:: -- 4. Comprobar .env -------------------------------------------------
 if not exist "%~dp0.env" (
     echo [!] No se encontro el archivo .env.
     if exist "%~dp0.env.example" (
@@ -95,7 +95,7 @@ if not exist "%~dp0.env" (
     echo.
 )
 
-:: ── 5. Lanzar app ─────────────────────────────────────────────────
+:: -- 5. Lanzar app -----------------------------------------------------
 echo [..] Abriendo navegador en http://localhost:5000 ...
 timeout /t 2 /nobreak >nul
 start "" http://localhost:5000
