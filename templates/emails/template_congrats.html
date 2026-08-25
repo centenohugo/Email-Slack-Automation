@@ -15,11 +15,11 @@
 
   <tr><td>
     <p style="font-size:14px; color:#333; line-height:1.65; margin:0 0 14px 0;">Hola {{ srmet_name.split(',')[1].strip() if ',' in srmet_name else srmet_name }},</p>
-    <p style="font-size:14px; color:#333; line-height:1.65; margin:0 0 14px 0;">¡Enhorabuena! 🎉 Tu equipo no tiene ningún curso de Safety Training pendiente en los próximos 21 días. Sois un referente en compliance — ¡seguid así! 💪</p>
+    <p style="font-size:14px; color:#333; line-height:1.65; margin:0 0 14px 0;">¡Enhorabuena! 🎉 Tu equipo no tiene ningún curso de Safety Training pendiente en los próximos {{ days_threshold }} días. Sois un referente en compliance — ¡seguid así! 💪</p>
     <p style="font-size:13px; color:#444; line-height:1.65; margin:0;">
       Muchas gracias,<br>
       Un saludo,<br>
-      <strong>Equipo de ZAZ1-RME-Trainings</strong>
+      <strong>{{ signature }}</strong>
     </p>
   </td></tr>
 

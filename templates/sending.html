@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+      {% include '_flashes.html' %}
   <nav class="navbar navbar-light bg-white border-bottom px-4">
-    <a class="navbar-brand text-decoration-none" href="/">RME ZAZ1 · Training Reminder</a>
+    <a class="navbar-brand text-decoration-none" href="/">{{ site_name }} · Training Reminder</a>
   </nav>
 
   <div class="container py-5" style="max-width: 720px;">
@@ -106,7 +107,7 @@
 
       if (failCount === 0) {
         title.textContent = 'Correos enviados';
-        subtitle.innerHTML = successCount + ' correo(s) enviados correctamente con la plantilla <strong>' + esc(data.template_label) + '</strong>.';
+        subtitle.textContent = successCount + ' mensaje(s) enviados correctamente por ' + (data.channel_label || 'correo') + '.';
       } else if (successCount === 0) {
         title.textContent = 'Error al enviar';
         subtitle.textContent = 'No se pudo enviar ningún correo. Consulta los errores a continuación.';

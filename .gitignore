@@ -1,4 +1,46 @@
-__pycache__
+# =============================================================
+#  Nada de lo que hay aqui se sube al repositorio.
+#  Si anades ficheros con datos de personas, ponlos en esta lista.
+# =============================================================
+
+# --- Credenciales -------------------------------------------
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+
+# --- Datos con informacion personal --------------------------
+# Fichero de equipos: contiene nombres y logins reales.
+# Se regenera con:  python build_teams.py <rota.xlsm>
 sample/Teams.xlsx
-sample/Training_Report_by_C_1782730874667.csv
+Teams.xlsx
+
+# Informes de formacion descargados del panel.
+sample/Training_Report*.csv
+Training_Report*.csv
+
+# Rotas / calendarios y cualquier CSV o Excel suelto en la raiz.
+*.xlsm
+/*.csv
+/*.xlsx
+
+# Carpeta temporal donde se suben los ficheros desde la web.
+uploads/
+
+# --- Python --------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# --- Editores y herramientas ---------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/
+.gstack/

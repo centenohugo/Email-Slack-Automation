@@ -52,21 +52,3 @@ def send_email(to_email, subject, html_body, test_mode=True):
         )
     except Exception as e:
         return False, _friendly_error(e)
-
-
-def send_all_emails(email_list):
-    """
-    email_list: list of dicts with keys:
-      to_email, subject, html_body, label (display name for the result table)
-    """
-    results = []
-    for item in email_list:
-        success, error = send_email(item['to_email'], item['subject'], item['html_body'])
-        results.append({
-            'label': item.get('label', item.get('srmet_name', '')),
-            'crew': item.get('crew'),
-            'to_email': config.TEST_EMAIL if config.TEST_MODE else item['to_email'],
-            'success': success,
-            'error': error
-        })
-    return results

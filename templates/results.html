@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+      {% include '_flashes.html' %}
   <nav class="navbar navbar-light bg-white border-bottom px-4 d-flex justify-content-between align-items-center">
-    <a class="navbar-brand text-decoration-none" href="/">RME ZAZ1 · Training Reminder</a>
+    <a class="navbar-brand text-decoration-none" href="/">{{ site_name }} · Training Reminder</a>
     <div class="d-flex align-items-center gap-3">
       <form method="post" action="/toggle-test" class="d-flex align-items-center gap-2 mb-0">
         {% if test_mode %}
@@ -37,9 +38,9 @@
     <!-- Outlook reminder card -->
     <div class="border rounded p-4 mb-4 d-flex justify-content-between align-items-center gap-4" style="background:#fff;">
       <div>
-        <div class="fw-semibold mb-1">Antes de continuar — abre Microsoft Outlook</div>
-        <div class="text-muted small">Los correos se envían desde la cuenta configurada en Outlook en este PC.
-        Asegúrate de que la aplicación está abierta antes de pasar al siguiente paso.</div>
+        <div class="fw-semibold mb-1">Abre la aplicación de Outlook en este PC</div>
+        <div class="text-muted small">Tiene que ser el <strong>programa de escritorio</strong>.
+        El Outlook del navegador no sirve.</div>
       </div>
       <a href="/preview" class="btn btn-dark fw-semibold text-nowrap px-4">Outlook abierto → Continuar</a>
     </div>
@@ -85,7 +86,7 @@
                 <td class="text-muted">{{ r.crew if r.crew else '—' }}</td>
               </tr>
               {% else %}
-              <tr><td colspan="5" class="text-center py-4 text-muted">No hay registros con &lt; 21 días de vencimiento.</td></tr>
+              <tr><td colspan="5" class="text-center py-4 text-muted">No hay registros con &lt; {{ days_threshold }} días de vencimiento.</td></tr>
               {% endfor %}
             </tbody>
           </table>

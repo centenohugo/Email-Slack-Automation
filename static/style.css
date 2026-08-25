@@ -54,19 +54,6 @@ body {
   background: #fff;
 }
 
-.stat-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 1.2rem 1.5rem;
-  border: 1px solid #e9ecef;
-}
-
-.stat-card .number {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
 .test-mode-banner {
   background: #fef3c7;
   border: 1px solid #fbbf24;
@@ -81,3 +68,93 @@ body {
 .step-item.active { color: #111; font-weight: 700; }
 .step-item.done { color: #888; }
 .step-sep { color: #ddd; font-size: 0.7rem; }
+
+/* --- Preview: seleccion individual de destinatarios --- */
+.send-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: -1px;
+}
+
+.recipient-card {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  margin-bottom: -1px;
+}
+
+.recipient-card.last-card {
+  border-radius: 0 0 8px 8px;
+  margin-bottom: 0;
+}
+
+.recipient-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.recipient-head:hover {
+  background: #f8f9fa;
+}
+
+.recipient-card:has(.recipient-check:checked) .recipient-head {
+  border-left: 3px solid #212529;
+  padding-left: 9px;
+}
+
+.recipient-body {
+  padding: 4px 12px 14px;
+  border-top: 1px solid #f1f3f5;
+}
+
+.preview-toggle {
+  white-space: nowrap;
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.section-caret {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.section-caret:hover {
+  color: #111;
+}
+
+/* Cabecera cuando la seccion esta plegada: esquinas completas */
+.section-head.collapsed {
+  border-radius: 8px;
+  margin-bottom: 0;
+}
+
+/* --- Pantalla inicial: de donde sacar el CSV --- */
+.source-card {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-left: 3px solid #0d6efd;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.source-card ol {
+  line-height: 1.6;
+}

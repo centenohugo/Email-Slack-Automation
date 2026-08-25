@@ -1,0 +1,6 @@
+{# Avisos de la aplicacion (errores, informacion). Incluido en todas las paginas. #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'danger' if cat == 'error' else 'info' }} mb-4">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}

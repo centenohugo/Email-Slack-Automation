@@ -5,10 +5,18 @@
   <title>Preview y envío — Training Reminder</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .slack-preview {
+      background: #f8f8f8; border: 1px solid #ddd; border-radius: 8px;
+      padding: 16px; font-family: Consolas, 'Courier New', monospace;
+      font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; margin: 0;
+    }
+  </style>
 </head>
 <body>
+      {% include '_flashes.html' %}
   <nav class="navbar navbar-light bg-white border-bottom px-4 d-flex justify-content-between align-items-center">
-    <a class="navbar-brand text-decoration-none" href="/">RME ZAZ1 · Training Reminder</a>
+    <a class="navbar-brand text-decoration-none" href="/">{{ site_name }} · Training Reminder</a>
     <div class="d-flex align-items-center gap-3">
       <form method="post" action="/toggle-test" class="d-flex align-items-center gap-2 mb-0">
         {% if test_mode %}
@@ -36,82 +44,182 @@
 
     <form method="post" action="/send" id="sendForm">
 
-      <!-- Send bar -->
-      <div class="d-flex align-items-center justify-content-between gap-3 mb-4 p-3 bg-white border rounded">
-        <div class="text-muted small">
-          {{ email_previews | length }} correo(s) a SRMETs
-          {% if congrats_previews %} · {{ congrats_previews | length }} de felicitación{% endif %}
-          {% if no_srmet_employees %} · <span id="direct-label" style="display:none">+ <span id="direct-count">{{ no_srmet_employees | length }}</span> directos</span>{% endif %}
+      <!-- Canal de envío -->
+      <div class="mb-3 p-3 bg-white border rounded">
+        <div class="fw-semibold mb-2">Canal de envío</div>
+        <div class="d-flex flex-wrap gap-4">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="channels" id="ch-email"
+                   value="email" checked onchange="updateChannel()">
+            <label class="form-check-label" for="ch-email">Email <span class="text-muted small">(Outlook)</span></label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="channels" id="ch-slack"
+                   value="slack" onchange="updateChannel()">
+            <label class="form-check-label" for="ch-slack">Slack</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="channels" id="ch-both"
+                   value="both" onchange="updateChannel()">
+            <label class="form-check-label" for="ch-both">Email + Slack</label>
+          </div>
         </div>
+        <div class="text-muted small mt-2" id="channel-hint">
+          Los mensajes de Slack se pueden personalizar editando el archivo
+          <code>SLACK_MESSAGE.md</code> de la carpeta del proyecto (no hace falta reiniciar la app).
+        </div>
+        {% if slack_warnings %}
+        <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+          {% for w in slack_warnings %}<div>⚠️ {{ w }}</div>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Send bar (pegada arriba al hacer scroll) -->
+      <div class="send-bar d-flex align-items-center justify-content-between gap-3 mb-4 p-3 bg-white border rounded">
+        <div class="text-muted small" id="count-summary">0 destinatario(s) seleccionado(s)</div>
         <button type="submit" class="btn btn-dark fw-semibold px-4" id="send-btn">
-          Enviar {{ email_previews | length + congrats_previews | length }} correo(s) →
+          Enviar 0 mensaje(s) →
         </button>
       </div>
 
-      <!-- SRMET email previews -->
+      <!-- SRMETs con cursos pendientes -->
       {% if email_previews %}
-      {% for preview in email_previews %}
-      <div class="mb-4">
-        <div class="text-muted small mb-1">
-          <strong>Equipo {{ preview.crew }}</strong> · {{ preview.srmet_name }}
-          {% if test_mode %}· <em>→ {{ test_email }}</em>{% endif %}
+      <div class="section-head" data-section="srmet">
+        <button type="button" class="section-caret" id="caret-srmet"
+                aria-expanded="true" onclick="toggleSectionRows('srmet')">▾</button>
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="all-srmet" checked
+                 onchange="toggleSection('srmet', this.checked)">
+          <label class="form-check-label fw-semibold" for="all-srmet">SRMETs con cursos pendientes</label>
         </div>
-        <iframe srcdoc="{{ preview.html | e }}" class="email-preview-frame" frameborder="0"
-                onload="this.style.height=(this.contentDocument.body.scrollHeight+32)+'px'"></iframe>
+        <span class="badge bg-secondary" id="badge-srmet">{{ email_previews | length }}</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto"
+                id="btn-srmet" onclick="toggleSectionPreviews('srmet')">Mostrar previews</button>
+      </div>
+
+      <div class="section-body" id="body-srmet">
+      {% for preview in email_previews %}
+      <div class="recipient-card{% if loop.last %} last-card{% endif %}" data-section="srmet">
+        <div class="recipient-head">
+          <div class="form-check mb-0 flex-grow-1">
+            <input class="form-check-input recipient-check" type="checkbox" name="recipients"
+                   id="rc-srmet-{{ preview.srmet_login }}" value="srmet:{{ preview.srmet_login }}"
+                   checked onchange="onRecipientChange('srmet')">
+            <label class="form-check-label" for="rc-srmet-{{ preview.srmet_login }}">
+              <strong>Equipo {{ preview.crew }}</strong> · {{ preview.srmet_name }}
+              {% if test_mode %}<em class="text-muted small">· → {{ test_email }}</em>{% endif %}
+            </label>
+          </div>
+          <button type="button" class="btn btn-sm btn-link p-0 preview-toggle"
+                  onclick="togglePreview(this)">Ver preview</button>
+        </div>
+        <div class="recipient-body" style="display:none;">
+          <div class="email-block">
+            <iframe srcdoc="{{ preview.html | e }}" class="email-preview-frame" frameborder="0"
+                    onload="fitFrame(this)"></iframe>
+          </div>
+          <div class="slack-block" style="display:none;">
+            <pre class="slack-preview">{{ slack_previews.get('srmet:' + preview.srmet_login, '') }}</pre>
+          </div>
+        </div>
       </div>
       {% endfor %}
+      </div>
       {% else %}
       <p class="text-muted text-center py-3">No hay SRMETs con miembros afectados.</p>
       {% endif %}
 
-      <!-- Congrats previews (fully compliant teams) -->
+      <!-- Equipos al día (felicitación) -->
       {% if congrats_previews %}
-      <div class="mt-4 border-top pt-4">
-        <div class="d-flex align-items-center gap-3 mb-3">
-          <h6 class="fw-semibold text-success mb-0">✅ Equipos al día</h6>
-          <span class="badge bg-success">{{ congrats_previews | length }} correo(s)</span>
+      <div class="section-head mt-4" data-section="congrats">
+        <button type="button" class="section-caret" id="caret-congrats"
+                aria-expanded="true" onclick="toggleSectionRows('congrats')">▾</button>
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="all-congrats" checked
+                 onchange="toggleSection('congrats', this.checked)">
+          <label class="form-check-label fw-semibold text-success" for="all-congrats">✅ Equipos al día</label>
         </div>
-        {% for preview in congrats_previews %}
-        <div class="mb-4">
-          <div class="text-muted small mb-1">
-            <strong>Equipo {{ preview.crew }}</strong> · {{ preview.srmet_name }}
-            {% if test_mode %}· <em>→ {{ test_email }}</em>{% endif %}
+        <span class="badge bg-success" id="badge-congrats">{{ congrats_previews | length }}</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto"
+                id="btn-congrats" onclick="toggleSectionPreviews('congrats')">Mostrar previews</button>
+      </div>
+
+      <div class="section-body" id="body-congrats">
+      {% for preview in congrats_previews %}
+      <div class="recipient-card{% if loop.last %} last-card{% endif %}" data-section="congrats">
+        <div class="recipient-head">
+          <div class="form-check mb-0 flex-grow-1">
+            <input class="form-check-input recipient-check" type="checkbox" name="recipients"
+                   id="rc-congrats-{{ preview.srmet_login }}" value="congrats:{{ preview.srmet_login }}"
+                   checked onchange="onRecipientChange('congrats')">
+            <label class="form-check-label" for="rc-congrats-{{ preview.srmet_login }}">
+              <strong>Equipo {{ preview.crew }}</strong> · {{ preview.srmet_name }}
+              {% if test_mode %}<em class="text-muted small">· → {{ test_email }}</em>{% endif %}
+            </label>
           </div>
-          <iframe srcdoc="{{ preview.html | e }}" class="email-preview-frame" frameborder="0"
-                  onload="this.style.height=(this.contentDocument.body.scrollHeight+32)+'px'"></iframe>
+          <button type="button" class="btn btn-sm btn-link p-0 preview-toggle"
+                  onclick="togglePreview(this)">Ver preview</button>
         </div>
-        {% endfor %}
+        <div class="recipient-body" style="display:none;">
+          <div class="email-block">
+            <iframe srcdoc="{{ preview.html | e }}" class="email-preview-frame" frameborder="0"
+                    onload="fitFrame(this)"></iframe>
+          </div>
+          <div class="slack-block" style="display:none;">
+            <pre class="slack-preview">{{ slack_previews.get('congrats:' + preview.srmet_login, '') }}</pre>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
       </div>
       {% endif %}
 
-      <!-- Direct employee notifications) -->
+      <!-- Notificaciones directas (sin SRMET) -->
       {% if no_srmet_employees %}
-      <div class="mt-4 border-top pt-4">
-        <div class="d-flex align-items-center gap-3 mb-3">
-          <h6 class="fw-semibold text-danger mb-0">Notificaciones directas </h6>
-          <span class="badge bg-danger">{{ no_srmet_employees | length }} empleado(s)</span>
-        </div>
-
-        <div class="form-check mb-1">
-          <input class="form-check-input" type="checkbox" name="send_no_srmet" id="send_no_srmet"
-                 value="on" onchange="toggleDirect(this.checked)">
-          <label class="form-check-label" for="send_no_srmet">
-            Enviar correo individual a <strong>{{ no_srmet_employees | length }}</strong> persona(s) sin SRMET asignado
+      <div class="section-head mt-4" data-section="emp">
+        <button type="button" class="section-caret" id="caret-emp"
+                aria-expanded="true" onclick="toggleSectionRows('emp')">▾</button>
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="all-emp"
+                 onchange="toggleSection('emp', this.checked)">
+          <label class="form-check-label fw-semibold text-danger" for="all-emp">
+            Notificaciones directas
+            <span class="text-muted fw-normal small">(personas sin SRMET asignado)</span>
           </label>
         </div>
+        <span class="badge bg-danger" id="badge-emp">{{ no_srmet_employees | length }}</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto"
+                id="btn-emp" onclick="toggleSectionPreviews('emp')">Mostrar previews</button>
+      </div>
 
-        <div id="no-srmet-previews" style="display:none;">
-          {% for emp in no_srmet_employees %}
-          <div class="mb-4">
-            <div class="text-muted small mb-1">
+      <div class="section-body" id="body-emp">
+      {% for emp in no_srmet_employees %}
+      <div class="recipient-card{% if loop.last %} last-card{% endif %}" data-section="emp">
+        <div class="recipient-head">
+          <div class="form-check mb-0 flex-grow-1">
+            <input class="form-check-input recipient-check" type="checkbox" name="recipients"
+                   id="rc-emp-{{ emp.login }}" value="emp:{{ emp.login }}"
+                   onchange="onRecipientChange('emp')">
+            <label class="form-check-label" for="rc-emp-{{ emp.login }}">
               <strong>{{ emp.name }}</strong> · {{ emp.login }}
-              {% if test_mode %}· <em>→ {{ test_email }}</em>{% endif %}
-            </div>
-            <iframe srcdoc="{{ no_srmet_previews[emp.login] | e }}" class="email-preview-frame" frameborder="0"
-                    onload="this.style.height=(this.contentDocument.body.scrollHeight+32)+'px'"></iframe>
+              {% if test_mode %}<em class="text-muted small">· → {{ test_email }}</em>{% endif %}
+            </label>
           </div>
-          {% endfor %}
+          <button type="button" class="btn btn-sm btn-link p-0 preview-toggle"
+                  onclick="togglePreview(this)">Ver preview</button>
         </div>
+        <div class="recipient-body" style="display:none;">
+          <div class="email-block">
+            <iframe srcdoc="{{ no_srmet_previews[emp.login] | e }}" class="email-preview-frame" frameborder="0"
+                    onload="fitFrame(this)"></iframe>
+          </div>
+          <div class="slack-block" style="display:none;">
+            <pre class="slack-preview">{{ slack_previews.get('emp:' + emp.login, '') }}</pre>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
       </div>
       {% endif %}
 
@@ -120,16 +228,122 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const srmetCount = {{ email_previews | length + congrats_previews | length }};
-    const directCount = {{ no_srmet_employees | length }};
+    const SECTIONS = ['srmet', 'congrats', 'emp'];
 
-    function toggleDirect(checked) {
-      document.getElementById('no-srmet-previews').style.display = checked ? 'block' : 'none';
-      const label = document.getElementById('direct-label');
-      if (label) label.style.display = checked ? 'inline' : 'none';
-      const total = srmetCount + (checked ? directCount : 0);
-      document.getElementById('send-btn').textContent = `Enviar ${total} correo(s) →`;
+    function currentChannel() {
+      const el = document.querySelector('input[name="channels"]:checked');
+      return el ? el.value : 'email';
     }
+
+    function sectionChecks(section) {
+      return document.querySelectorAll(
+        '.recipient-card[data-section="' + section + '"] .recipient-check');
+    }
+
+    function fitFrame(frame) {
+      try {
+        const h = frame.contentDocument.body.scrollHeight;
+        if (h > 0) frame.style.height = (h + 32) + 'px';
+      } catch (e) { /* el iframe aun no es accesible */ }
+    }
+
+    function fitFramesIn(root) {
+      root.querySelectorAll('iframe.email-preview-frame').forEach(fitFrame);
+    }
+
+    function refreshCount() {
+      const checked = document.querySelectorAll('.recipient-check:checked').length;
+      const perRecipient = currentChannel() === 'both' ? 2 : 1;
+      const btn = document.getElementById('send-btn');
+      btn.textContent = 'Enviar ' + (checked * perRecipient) + ' mensaje(s) →';
+      btn.disabled = (checked === 0);
+      document.getElementById('count-summary').textContent =
+        checked + ' destinatario(s) seleccionado(s)' +
+        (perRecipient === 2 ? ' · ×2 (email + Slack)' : '');
+    }
+
+    /* Mantiene la casilla "todos" de la seccion en sintonia con sus destinatarios */
+    function refreshSectionAll(section) {
+      const master = document.getElementById('all-' + section);
+      if (!master) return;
+      const checks = sectionChecks(section);
+      let on = 0;
+      checks.forEach(function (c) { if (c.checked) on++; });
+      master.checked = (on === checks.length && checks.length > 0);
+      master.indeterminate = (on > 0 && on < checks.length);
+      const badge = document.getElementById('badge-' + section);
+      if (badge) badge.textContent = on + ' / ' + checks.length;
+    }
+
+    function onRecipientChange(section) {
+      refreshSectionAll(section);
+      refreshCount();
+    }
+
+    function toggleSection(section, checked) {
+      sectionChecks(section).forEach(function (c) { c.checked = checked; });
+      refreshSectionAll(section);
+      refreshCount();
+    }
+
+    /* Muestra u oculta el preview de un destinatario concreto */
+    function togglePreview(btn) {
+      const body = btn.closest('.recipient-card').querySelector('.recipient-body');
+      const show = (body.style.display === 'none');
+      body.style.display = show ? 'block' : 'none';
+      btn.textContent = show ? 'Ocultar preview' : 'Ver preview';
+      if (show) fitFramesIn(body);
+    }
+
+    /* Muestra u oculta de golpe todos los previews de una seccion */
+    function toggleSectionPreviews(section) {
+      const btn = document.getElementById('btn-' + section);
+      const show = (btn.dataset.open !== '1');
+      btn.dataset.open = show ? '1' : '0';
+      btn.textContent = show ? 'Ocultar previews' : 'Mostrar previews';
+      document.querySelectorAll('.recipient-card[data-section="' + section + '"]')
+        .forEach(function (card) {
+          const body = card.querySelector('.recipient-body');
+          body.style.display = show ? 'block' : 'none';
+          const toggle = card.querySelector('.preview-toggle');
+          if (toggle) toggle.textContent = show ? 'Ocultar preview' : 'Ver preview';
+          if (show) fitFramesIn(body);
+        });
+    }
+
+    /* Pliega o despliega la lista completa de destinatarios de una seccion */
+    function toggleSectionRows(section) {
+      const body = document.getElementById('body-' + section);
+      const caret = document.getElementById('caret-' + section);
+      if (!body || !caret) return;
+      const show = (body.style.display === 'none');
+      body.style.display = show ? 'block' : 'none';
+      caret.textContent = show ? '▾' : '▸';
+      caret.setAttribute('aria-expanded', show ? 'true' : 'false');
+      const head = document.querySelector('.section-head[data-section="' + section + '"]');
+      if (head) head.classList.toggle('collapsed', !show);
+      const btn = document.getElementById('btn-' + section);
+      if (btn) btn.disabled = !show;
+    }
+
+    function updateChannel() {
+      const ch = currentChannel();
+      const showEmail = (ch === 'email' || ch === 'both');
+      const showSlack = (ch === 'slack' || ch === 'both');
+      document.querySelectorAll('.email-block').forEach(function (el) {
+        el.style.display = showEmail ? 'block' : 'none';
+      });
+      document.querySelectorAll('.slack-block').forEach(function (el) {
+        el.style.display = showSlack ? 'block' : 'none';
+      });
+      document.querySelectorAll('.recipient-body').forEach(function (body) {
+        if (body.style.display !== 'none') fitFramesIn(body);
+      });
+      refreshCount();
+    }
+
+    SECTIONS.forEach(refreshSectionAll);
+    updateChannel();
   </script>
 </body>
 </html>

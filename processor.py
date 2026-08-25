@@ -1,31 +1,139 @@
+import os
 import pandas as pd
 from datetime import date
 import config
 
 
+def _building_filter():
+    """Lista de edificios aceptados, o None si no hay que filtrar."""
+    raw = getattr(config, 'BUILDING_FILTER', None)
+    if not raw:
+        return None
+    if isinstance(raw, str):
+        raw = [raw]
+    return {str(b).strip().upper() for b in raw if str(b).strip()}
+
+
+# El informe de formacion se exporta en varios formatos segun el report que
+# se use en la herramienta. Cada campo que necesitamos puede venir con
+# nombres distintos; aqui se listan todos los alias conocidos (en minusculas).
+COLUMN_ALIASES = {
+    'login':                  ('employee login', 'login', 'employee_login'),
+    'name':                   ('employee name', 'name', 'employee_name'),
+    'course_title':           ('course title', 'course_title', 'coursetitle'),
+    'days_til_non_compliant': ('days til non compliant', 'days_til_non_compliant'),
+    'expiration_date':        ('expiration date', 'expiration_date'),
+    'compliance_category':    ('compliance category', 'compliance_category'),
+    'building':               ('building', 'site'),
+}
+
+
+def _column_map(df):
+    """Relaciona cada campo interno con la columna real del CSV, si existe."""
+    found = {}
+    for internal, aliases in COLUMN_ALIASES.items():
+        for col in df.columns:
+            if str(col).strip().lower().lstrip('﻿') in aliases:
+                found[internal] = col
+                break
+    return found
+
+
+def _tidy_name(value):
+    """Normaliza 'Apellidos,Nombre' a 'Nombre Apellidos'."""
+    text = str(value).strip()
+    if ',' in text:
+        surname, _, given = text.partition(',')
+        given, surname = given.strip(), surname.strip()
+        if given and surname:
+            return f'{given} {surname}'
+    return text
+
+
 def process_csv(filepath):
-    df = pd.read_csv(filepath)
+    # utf-8-sig: algunos informes se exportan con BOM y la primera columna
+    # llegaria como '﻿Building'.
+    df = pd.read_csv(filepath, encoding='utf-8-sig')
+    cols = _column_map(df)
 
+    missing = [f for f in ('login', 'name', 'course_title') if f not in cols]
+    if 'days_til_non_compliant' not in cols and 'expiration_date' not in cols:
+        missing.append("'Days Til Non Compliant' o 'Expiration Date'")
+    if missing:
+        raise ValueError(
+            "El CSV no tiene el formato esperado. Faltan estas columnas: "
+            + ", ".join(missing)
+            + ". Columnas encontradas: " + ", ".join(str(c) for c in df.columns)
+        )
 
-    df['Expiration Date'] = pd.to_datetime(df['Expiration Date'], errors='coerce')
-    today = date.today()
+    # Filtro por edificio: el informe puede venir con varios sites mezclados.
+    buildings = _building_filter()
+    if buildings and 'building' in cols:
+        col = cols['building']
+        df = df[df[col].astype(str).str.strip().str.upper().isin(buildings)]
 
-    df['days_til_non_compliant'] = df['Expiration Date'].apply(
-        lambda x: (x.date() - today).days if pd.notna(x) else None
-    )
+    if 'days_til_non_compliant' in cols:
+        # El informe ya trae los dias calculados.
+        days = pd.to_numeric(df[cols['days_til_non_compliant']], errors='coerce')
+    else:
+        # Hay que calcularlos a partir de la fecha de caducidad.
+        exp = pd.to_datetime(df[cols['expiration_date']], errors='coerce')
+        today = date.today()
+        days = exp.apply(lambda x: (x.date() - today).days if pd.notna(x) else None)
+        days = pd.to_numeric(days, errors='coerce')
 
-    df = df[df['days_til_non_compliant'].notna() & (df['days_til_non_compliant'] < config.DAYS_THRESHOLD)]
+    df = df.assign(days_til_non_compliant=days)
+    df = df[df['days_til_non_compliant'].notna() &
+            (df['days_til_non_compliant'] < config.DAYS_THRESHOLD)]
 
-    result = df[['Employee Login', 'Employee Name', 'Course Title',
-                 'days_til_non_compliant', 'Compliance Category']].copy()
-    result.columns = ['login', 'name', 'course_title', 'days_til_non_compliant', 'compliance_category']
-    result['login'] = result['login'].str.strip().str.lower()
-    result['days_til_non_compliant'] = result['days_til_non_compliant'].astype(int)
+    result = pd.DataFrame({
+        'login': df[cols['login']].astype(str).str.strip().str.lower(),
+        'name': df[cols['name']].apply(_tidy_name),
+        'course_title': df[cols['course_title']].astype(str).str.strip(),
+        'days_til_non_compliant': df['days_til_non_compliant'].astype(int),
+        'compliance_category': (df[cols['compliance_category']]
+                                if 'compliance_category' in cols else ''),
+    })
 
     return result.to_dict('records')
 
 
+_NAMED_CREWS = {str(c).strip().upper(): str(c) for c in config.NAMED_CREWS}
+
+
+def _parse_crew(crew_raw):
+    """Normaliza el valor de la columna Crew.
+
+    Devuelve el numero de turno (int) si es uno de los turnos con SRMET,
+    el nombre del equipo (str) si es un equipo con nombre propio (NAMED_CREWS),
+    o None para el resto ("C", "Ap", vacio...), que no forman equipo.
+    """
+    if crew_raw is None or (isinstance(crew_raw, float) and pd.isna(crew_raw)):
+        return None
+    raw = str(crew_raw).strip()
+    if not raw or raw.lower() == 'nan':
+        return None
+    if raw.upper() in _NAMED_CREWS:
+        return _NAMED_CREWS[raw.upper()]
+    try:
+        n = int(float(raw))
+    except (ValueError, TypeError):
+        return None
+    return n if n in config.NUMERIC_CREWS else None
+
+
+def _crew_sort_key(crew):
+    """Ordena los turnos numericos primero y despues los equipos con nombre."""
+    return (0, crew, '') if isinstance(crew, int) else (1, 0, str(crew))
+
+
 def load_teams():
+    if not os.path.exists(config.TEAMS_FILE):
+        raise FileNotFoundError(
+            f"No se encuentra el fichero de equipos '{config.TEAMS_FILE}'. "
+            "Generalo a partir de la rota anual con: "
+            "python build_teams.py uploads/<CALENDAR_FULLROTA>.xlsm"
+        )
     df = pd.read_excel(config.TEAMS_FILE)
 
     teams = {}           # crew_num (int 1-12) -> {'srmets': [{...}, ...], 'members': [...]}
@@ -40,14 +148,7 @@ def load_teams():
         if not login or login == 'nan':
             continue
 
-        crew_num = None
-        try:
-            if pd.notna(crew_raw):
-                n = int(float(str(crew_raw)))
-                if 1 <= n <= 12:
-                    crew_num = n
-        except (ValueError, TypeError):
-            pass
+        crew_num = _parse_crew(crew_raw)
 
         login_to_crew[login] = crew_num
 
@@ -120,7 +221,7 @@ def get_compliant_srmets(teams, srmet_groups):
                 'srmet_name': srmet['name'],
                 'srmet_email': srmet['login'] + config.EMAIL_DOMAIN,
             })
-    compliant.sort(key=lambda x: x['crew'])
+    compliant.sort(key=lambda x: _crew_sort_key(x['crew']))
     return compliant
 
 
